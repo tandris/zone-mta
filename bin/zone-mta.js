@@ -183,7 +183,7 @@ module.exports.init = (app, done) => {
                     },
                     license: 'UNLICENSED',
                     dependencies: {
-                        'zone-mta': selfPackage.version
+                        'zone-mta': '../zone-mta'
                     }
                 };
 
