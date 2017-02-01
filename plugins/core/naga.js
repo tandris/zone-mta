@@ -45,6 +45,62 @@ function authorize(envelope, session, next) {
     }
 }
 
+function onQueue(envelope, messageInfo, next) {
+    sendEvent(parseMessageId(messageInfo['message-id']), 'PROCESSED', '');
+    next();
+}
+
+function onBounce(bounce, maildrop, next) {
+    let messageId = bounce.headers.getFirst('message-id');
+    sendEvent(parseMessageId(messageId), 'BOUNCE', bounce.category);
+    next();
+}
+
+function onDefer(zone, delivery, meta, next) {
+    sendEvent(parseMessageId(meta.messageId), 'DEFERRED', delivery._deferred.response);
+    next();
+}
+
+function onSent(zone, data, meta, next) {
+    if (data.status.delivered === true) {
+        sendEvent(parseMessageId(meta.messageId), 'DELIVERED', '');
+    }
+    next();
+}
+
+function parseMessageId(messageId) {
+    if (messageId.indexOf('<') > -1) {
+        return messageId.substr(messageId.indexOf('<') + 1, messageId.indexOf('>') - 1);
+    }
+    return messageId;
+}
+
+function sendEvent(messageId, eventType, eventMessage) {
+    console.info('Sending message event. { eventType = ' + eventType + ',  messageId = ' + messageId + ', message = ' + eventMessage + ' }');
+    let req = http.request({
+        host: nagaMainHost,
+        protocol: nagaMainProtocol,
+        port: nagaMainPort,
+        path: '/api/sender/unit/add_message_event',
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Auth-Token': senderToken
+        },
+        agent: false // create a new agent just for this one request
+    }, (res) => {
+        res.on("data", function(chunk) {
+            let result = JSON.parse(chunk);
+            console.log(result);
+        });
+    });
+    req.on('error', function(err) {
+        console.error('Failed to send event request.');
+        console.log(err);
+    });
+    req.end();
+}
+
 function heartbeat() {
     let req = http.request({
         host: nagaMainHost,
@@ -69,59 +125,6 @@ function heartbeat() {
     req.on('error', function(err) {
         console.error('Failed to send heartbeat request to server.');
         console.log(err);
-    });
-    req.end();
-
-}
-
-function onQueue(envelope, messageInfo, next) {
-    console.log('TODO send event. { eventType = PROCESSED,  messageId = ' + parseMessageId(messageInfo['message-id']) + ', message = - }');
-    next();
-}
-
-function onBounce(bounce, maildrop, next) {
-    let messageId = bounce.headers.getFirst('message-id');
-    console.log('TODO send event. { eventType = BOUNCE,  messageId = ' + parseMessageId(messageId) + ', message = ' + bounce.category + ' }');
-    next();
-}
-
-function onDefer(zone, delivery, meta, next) {
-    console.log('TODO send event. { eventType = DEFERRED,  messageId = ' + parseMessageId(meta.messageId) + ', message = ' + delivery._deferred.response + ' }');
-    next();
-}
-
-function onSent(zone, data, meta, next) {
-    if (data.status.delivered === true) {
-        console.log(data);
-        console.log('TODO send event. { eventType = SENT,  messageId = ' + parseMessageId(meta.messageId) + ', message = SENT }');
-    }
-    next();
-}
-
-function parseMessageId(messageId) {
-    if (messageId.indexOf('<') > -1) {
-        return messageId.substr(messageId.indexOf('<') + 1, messageId.indexOf('>') - 1);
-    }
-    return messageId;
-}
-
-function sendEvent(endpoint) {
-    let req = http.request({
-        host: nagaMainHost,
-        protocol: nagaMainProtocol,
-        port: nagaMainPort,
-        path: '/api/sender/unit/' + endpoint,
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-Auth-Token': senderToken
-        },
-        agent: false // create a new agent just for this one request
-    }, (res) => {
-        res.on("data", function(chunk) {
-            let result = JSON.parse(chunk);
-            console.log(result);
-        });
     });
     req.end();
 }
