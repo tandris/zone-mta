@@ -96,6 +96,7 @@ function sendEvent(messageId, eventType, eventMessage) {
                 console.error(err);
             } else if (body.success === false) {
                 console.error('Faliled to send message event, invalid message event. { messageId = ' + messageId + '}');
+                console.error(body);
             } else {
                 console.info('Message event sent. { messageId = ' + messageId + '}');
             }
@@ -118,6 +119,7 @@ function heartbeat() {
                 console.error(err);
             } else if (body.success === false) {
                 console.error('Failed to send heartbeat signal, invalid content.');
+                console.error(body);
             } else {
                 console.info('Heartbeat signal sent.');
             }
