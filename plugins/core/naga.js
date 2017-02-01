@@ -120,8 +120,6 @@ function heartbeat() {
             } else if (body.success === false) {
                 console.error('Failed to send heartbeat signal, invalid content.');
                 console.error(body);
-            } else {
-                console.info('Heartbeat signal sent.');
             }
         }
     );
